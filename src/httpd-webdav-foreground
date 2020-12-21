@@ -1,0 +1,46 @@
+#!/bin/sh
+set -e
+
+# The dav config file
+DAV_CONFIG=/usr/local/apache2/conf/extra/httpd-dav.conf
+MAIN_CONFIG=/usr/local/apache2/conf/httpd.conf
+LDAP_CONFIG=/etc/openldap/ldap.conf
+WEBDAV_ROOT=/usr/local/apache2/webdav
+
+# Update apache config file
+# Contains forward slashes, so need other delimiter
+sed -i "s@{{APACHE_LDAP_URL}}@${APACHE_LDAP_URL}@g" ${DAV_CONFIG}
+sed -i s/{{APACHE_LDAP_BIND_DN}}/${APACHE_LDAP_BIND_DN}/g ${DAV_CONFIG}
+sed -i s/{{APACHE_LDAP_PASSWORD}}/${APACHE_LDAP_PASSWORD}/g ${DAV_CONFIG}
+sed -i s/{{APACHE_LDAP_GROUP_ATTRIBUTE_IS_DN}}/${APACHE_LDAP_GROUP_ATTRIBUTE_IS_DN}/g ${DAV_CONFIG}
+sed -i s/{{APACHE_LDAP_GROUP_ATTRIBUTE}}/${APACHE_LDAP_GROUP_ATTRIBUTE}/g ${DAV_CONFIG}
+sed -i s/{{APACHE_LDAP_TRUSTED_MODE}}/${APACHE_LDAP_TRUSTED_MODE}/g ${DAV_CONFIG}
+
+sed -i s/{{ADMIN_EMAIL}}/${ADMIN_EMAIL}/g ${MAIN_CONFIG}
+sed -i s/{{APACHE_LOG_LEVEL}}/${APACHE_LOG_LEVEL}/g ${MAIN_CONFIG}
+sed -i s/{{APACHE_PORT}}/${APACHE_PORT}/g ${MAIN_CONFIG}
+
+sed -i s/{{LDAP_TLS_REQCERT}}/${LDAP_TLS_REQCERT}/g ${LDAP_CONFIG}
+
+
+# Create dirs for webdav shares
+for SHARE_NAME in ${WEBDAV_SHARES}; do
+  mkdir ${WEBDAV_ROOT}/${SHARE_NAME}
+  echo "Use DavShareMacro ${SHARE_NAME}" >> /usr/local/apache2/conf/extra/shares-dav.conf
+done
+
+# Set rights for dirs/files to share using webdav
+chown -R daemon:daemon ${WEBDAV_ROOT}
+
+# Set permissions for dir holding locking database
+chown -R daemon:daemon /usr/local/apache2/var
+
+
+# Validate apache config
+apachectl configtest
+
+# Apache gets grumpy about PID files pre-existing
+rm -f /usr/local/apache2/logs/httpd.pid
+
+# Run apache in the forground (To keep the container alive)
+exec httpd -DFOREGROUND "$@"
