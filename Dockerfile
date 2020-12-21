@@ -7,6 +7,7 @@ FROM httpd:2.4-alpine
 # List of shares to serve
 ENV WEBDAV_SHARES "share_1 share_2"
 
+# User STARTTLS by default
 ENV APACHE_LDAP_TRUSTED_MODE STARTTLS
 
 # Credentials for binding to the LDAP server
@@ -33,6 +34,15 @@ ENV ADMIN_EMAIL "admin@example.com"
 
 # openLDAP. Set to "never" for self signed certs
 ENV LDAP_TLS_REQCERT always
+
+ENV APACHE_LDAP_LIBRARY_DEBUG 0
+
+# LDAP cache
+ENV APACHE_LDAP_SHARED_CACHE_SIZE 500000
+ENV APACHE_LDAP_CACHE_ENTRIES 1024
+ENV APACHE_LDAP_CACHE_TTL 600
+ENV APACHE_LDAP_OP_CACHE_ENTRIES 1024
+ENV APACHE_LDAP_OP_CACHE_TTL 600
 
 
 ####################
