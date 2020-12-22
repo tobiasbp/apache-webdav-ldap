@@ -1,13 +1,19 @@
 #!/bin/sh
 set -e
 
-# The dav config file
+# Config files & paths
 DAV_CONFIG=/usr/local/apache2/conf/extra/httpd-dav.conf
 MAIN_CONFIG=/usr/local/apache2/conf/httpd.conf
-LDAP_CONFIG=/etc/openldap/ldap.conf
 WEBDAV_ROOT=/usr/local/apache2/webdav
+LDAP_CONFIG=/etc/openldap/ldap.conf
+APACHE_USER=daemon
 
-# Update apache config file
+# General apache config
+sed -i s/{{ADMIN_EMAIL}}/${ADMIN_EMAIL}/g ${MAIN_CONFIG}
+sed -i s/{{APACHE_LOG_LEVEL}}/${APACHE_LOG_LEVEL}/g ${MAIN_CONFIG}
+sed -i s/{{APACHE_PORT}}/${APACHE_PORT}/g ${MAIN_CONFIG}
+
+
 # Contains forward slashes, so need other delimiter
 sed -i "s@{{APACHE_LDAP_URL}}@${APACHE_LDAP_URL}@g" ${DAV_CONFIG}
 sed -i s/{{APACHE_LDAP_BIND_DN}}/${APACHE_LDAP_BIND_DN}/g ${DAV_CONFIG}
@@ -17,37 +23,29 @@ sed -i s/{{APACHE_LDAP_GROUP_ATTRIBUTE}}/${APACHE_LDAP_GROUP_ATTRIBUTE}/g ${DAV_
 sed -i s/{{APACHE_LDAP_TRUSTED_MODE}}/${APACHE_LDAP_TRUSTED_MODE}/g ${DAV_CONFIG}
 sed -i s/{{APACHE_LDAP_LIBRARY_DEBUG}}/${APACHE_LDAP_LIBRARY_DEBUG}/g ${DAV_CONFIG}
 
-# LDAP cache
+# LDAP cache config
 sed -i s/{{APACHE_LDAP_SHARED_CACHE_SIZE}}/${APACHE_LDAP_SHARED_CACHE_SIZE}/g ${DAV_CONFIG}
 sed -i s/{{APACHE_LDAP_CACHE_ENTRIES}}/${APACHE_LDAP_CACHE_ENTRIES}/g ${DAV_CONFIG}
 sed -i s/{{APACHE_LDAP_CACHE_TTL}}/${APACHE_LDAP_CACHE_TTL}/g ${DAV_CONFIG}
 sed -i s/{{APACHE_LDAP_OP_CACHE_ENTRIES}}/${APACHE_LDAP_OP_CACHE_ENTRIES}/g ${DAV_CONFIG}
 sed -i s/{{APACHE_LDAP_OP_CACHE_TTL}}/${APACHE_LDAP_OP_CACHE_TTL}/g ${DAV_CONFIG}
 
-
-
-
-sed -i s/{{ADMIN_EMAIL}}/${ADMIN_EMAIL}/g ${MAIN_CONFIG}
-sed -i s/{{APACHE_LOG_LEVEL}}/${APACHE_LOG_LEVEL}/g ${MAIN_CONFIG}
-sed -i s/{{APACHE_PORT}}/${APACHE_PORT}/g ${MAIN_CONFIG}
-
-
-
-
+# OpenLDAP config
 sed -i s/{{LDAP_TLS_REQCERT}}/${LDAP_TLS_REQCERT}/g ${LDAP_CONFIG}
 
 
-# Create dirs for webdav shares
 for SHARE_NAME in ${WEBDAV_SHARES}; do
+  # Create dirs for webdav shares
   mkdir ${WEBDAV_ROOT}/${SHARE_NAME}
+  # Configure shares in apache config
   echo "Use DavShareMacro ${SHARE_NAME}" >> /usr/local/apache2/conf/extra/shares-dav.conf
 done
 
 # Set rights for dirs/files to share using webdav
-chown -R daemon:daemon ${WEBDAV_ROOT}
+chown -R ${APACHE_USER}:${APACHE_USER} ${WEBDAV_ROOT}
 
 # Set permissions for dir holding locking database
-chown -R daemon:daemon /usr/local/apache2/var
+chown -R ${APACHE_USER}:${APACHE_USER} /usr/local/apache2/var
 
 
 # Validate apache config
