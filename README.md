@@ -3,28 +3,39 @@ A docker image running Apache serving directories via WebDAV with ldap authoriza
 Each directory (_share_) needs a matching _posixGroup_ in LDAP. The members of the group,
 can access the WebDAV share at *http://webdav.example.com/share-name*.
 In the container, the files are at stored at  _/usr/local/apache2/webdav/share-name_.
+You should probably mount persistent storage at _/usr/local/apache2/webdav_ to preserve
+your files across container restarts.
 
 The container accepts traffic on port 80 (By default), and does not support HTTPS.
 You are expected to run this image behind a proxy doing the encryption.
 
-The document root is _/usr/local/apache2/htdocs_ containing the file _index.html_. Mount your own
-dir there, to customize what is shows as the root page at _http://webdav.example.com_.
+The Apache document root is _/usr/local/apache2/htdocs_ containing the file _index.html_. Mount your own
+dir there (including _index.html_), to customize what is shown as the root page at _http://webdav.example.com_.
 
 
 # Configuration
-Configure cour container using the following env variables. All the variables prefixed with *APACHE_* match apache
+Configure your container using the following env variables. All the variables prefixed with *APACHE_* match apache
 configuration variables for Apache modules [mod_authnz_ldap](https://httpd.apache.org/docs/2.4/mod/mod_authnz_ldap.html) and
 [mod_ldap](https://httpd.apache.org/docs/2.4/mod/mod_ldap.html#ldaptrustedmode).
-
-*APACHE_LDAP_TRUSTED_MODE* holds the value used for [LDAPTrustedMode](https://httpd.apache.org/docs/2.4/mod/mod_ldap.html#ldaptrustedmode)
 
 ## WEBDAV_SHARES
 List of shares to serve via WebDAV separated by spaces. The default will create shares
 *http://webdav.example.com/share_1* and *http://webdav.example.com/share_2*
 * Default: *"share_1 share_2"*
 
+## APACHE_SHARE_REQUIRE_1 & APACHE_SHARE_REQUIRE_2
+These variables hold the two values making up the configuration of _Require_ for the
+shared directories. The default configuration shows how a share could be configured
+to only allow users who are members of an LDAP group matching the name of the WebDAV share.
+The variable *$DAV_SHARE_NAME* (remember to escape the _$_) holds the name of the share
+in the Apache configuration.
+[documentation](https://httpd.apache.org/docs/current/mod/mod_authnz_ldap.html#requiredirectives).
+* Default (APACHE_SHARE_REQUIRE_1): _ldap-group_
+* Default (APACHE_SHARE_REQUIRE_2): _cn=\$DAV_SHARE_NAME,ou=groups,ou=webdav,dc=example,dc=com_
+
+
 ## APACHE_LDAP_TRUSTED_MODE
-Configure use of encryption on connection to LDAP server.
+Configure the use of encryption on the connection to LDAP server.
 [documentation](https://httpd.apache.org/docs/2.4/mod/mod_ldap.html#ldaptrustedmode).
 * Default: _STARTTLS_
 
@@ -39,7 +50,8 @@ The password to use when binding as user *APACHE_LDAP_BIND_DN*.
 * Default: _"*****"_
 
 ## APACHE_LDAP_URL
-The ldap server, attribute of login scope and filter to use when looking up users.
+The ldap server, attribute of login scope and filter to use when looking up users. You can specify
+more than one URL, separated with a space,  for redundancy.
 [documentation](https://httpd.apache.org/docs/2.4/mod/mod_authnz_ldap.html#authldapurl)
 * Default: _"ldap://ldap.example.com/ou=webdav,dc=example,dc=com?uid?sub?(objectClass=person)"_
 
@@ -96,5 +108,5 @@ openLDAP parameter in _/etc/openldap/ldap.conf_. Set to "never" for self signed 
 
 # Testing
 Use the client [cadaver](http://www.webdav.org/cadaver/) for accessing your WebDAV shares form the command line.
-To access *share_1*, you would type `cadaver http://localhost:8080/share_1`
+To access *share_1*, you would type `cadaver http://webdav.example.com/share_1`
 

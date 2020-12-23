@@ -7,6 +7,10 @@ FROM httpd:2.4-alpine
 # List of shares to serve
 ENV WEBDAV_SHARES "share_1 share_2"
 
+# The require directive for each webdav share (Sub dir)
+ENV APACHE_SHARE_REQUIRE_1 ldap-group
+ENV APACHE_SHARE_REQUIRE_2 cn=\$DAV_SHARE_NAME,ou=groups,ou=webdav,dc=example,dc=com
+
 # User STARTTLS by default
 ENV APACHE_LDAP_TRUSTED_MODE STARTTLS
 
@@ -28,6 +32,9 @@ ENV APACHE_LOG_LEVEL warn
 
 # The port Apache will listen on
 ENV APACHE_PORT 80
+
+# The value used for ServerName (suffixed with port)
+ENV APACHE_SERVER_NAME webdav.example.com
 
 # Apache will tell user's to contact this email on errors
 ENV ADMIN_EMAIL "admin@example.com"
